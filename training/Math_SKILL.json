@@ -1,0 +1,65 @@
+{
+	"context": {
+
+		"name":"MATH",
+
+		"with_Auth":false,
+
+		"with_Collections":false
+	},
+
+	"intents": [{
+		
+		"context":"MATH",
+
+		"action":"solve",
+
+		"language":"en-GB",
+
+		"keywords_classes":["NUMBER","OPERATOR"],
+
+		"custom_classes_definition": {
+			
+			"OPERATOR": {
+
+				"times":"*",
+				
+				"minus":"-",
+
+				"plus":"+",
+
+				"divided_by":"/"
+
+			}
+		},
+
+		"utterances":["do five times twenty","do 12 minus 88","do eleven plus two","five divided by ten"],
+
+		"tags":["five,times,twenty","12,minus,88","eleven,plus,two","five,divided by,ten"]
+		
+	}],
+
+	"actions": [{
+
+		"context":"MATH",
+
+		"name":"solve",
+
+		"params":["NUMBER","OPERATOR","NUMBER"],
+
+		"language":"en-GB",
+
+		"only_operation":true,
+
+		"response_codes":[200,500,501],
+
+		"speeches": {
+
+			"200":["The result is %s","%s"],
+
+			"500":["Divison by zero are not allowed!"],
+
+			"501":["This is not a valid expression!","I'm not able to solve this expression"]
+		}
+	}]
+}

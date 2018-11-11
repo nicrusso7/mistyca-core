@@ -1,0 +1,58 @@
+
+{
+	"context": {
+
+		"name":"WIKIPEDIA",
+
+		"operaton_jar":"~/operation/Wikipedia.jar",
+
+		"with_Auth":false,
+
+		"with_Collections":false
+	},
+
+	"intents": [{
+		
+		"context":"WIKIPEDIA",
+
+		"action":"search",
+
+		"language":"en-GB",
+
+		"keywordsClasses":["PLAIN_TEXT"],
+
+		"utterances":["who was Leonardo Da Vinci","search Piccadilly Circus on Wikipedia"],
+
+		"tags":["Leonardo Da Vinci","Piccadilly Circus"]
+		
+	}],
+
+	"actions": [{
+
+		"context":"WIKIPEDIA",
+
+		"name":"search",
+
+		"params":["PLAIN_TEXT"],
+
+		"only_operation":false,
+
+		"language":"en-GB",
+
+		"base_url":"https://en.wikipedia.org",
+
+		"url_template":"/w/api.php?format=json&action=query&prop=extracts&titles=%s&redirects=true",
+
+		"action_type":"GET",
+
+		"response_codes":[200,500],
+
+		"speeches": {
+
+			"200":["according to Wikipedia, %s","%s"],
+
+			"500":["I can't find anything about that on Wikipedia","There isn't a page on Wikipedia about that"]
+		}
+	}]
+}
+
