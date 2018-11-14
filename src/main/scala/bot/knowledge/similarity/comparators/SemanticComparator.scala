@@ -45,7 +45,8 @@ object SemanticComparator {
     }
   }
   
-  def KeywordsClassesMatch(query_array:Array[String], language:String, case_keyword_class:Array[String]) : (Double,String) = {
-    return (0.0,"");
+  def KeywordsClassesMatch(query_array:Array[String], case_keyword_class:Array[String]) : (String,String,String) = {
+    //TODO
+    return (null,null,null)
   }
 }
