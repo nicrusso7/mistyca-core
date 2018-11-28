@@ -67,4 +67,9 @@ class IntentRetrievalTests extends FunSuite with BeforeAndAfter {
     //check extraction
     assert(analysis_3(6) == Stages.MISSING_MARKER)
   }
+  
+  test("BASIC Keyword Class Match function Test") {
+    //fill value TODO
+    
+  }
 }

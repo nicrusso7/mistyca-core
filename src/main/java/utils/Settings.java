@@ -17,4 +17,12 @@ public class Settings {
 		iconProps.loadFromXML(new FileInputStream(iconConfigPath));
 		return iconProps.getProperty(constant_name);
 	}
+	
+	public String getStanfordNLPCoreSettingsValue(String constant_name) throws InvalidPropertiesFormatException, FileNotFoundException, IOException {
+		String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
+		String iconConfigPath = rootPath + "stanfordNLPCore.xml";
+		Properties iconProps = new Properties();
+		iconProps.loadFromXML(new FileInputStream(iconConfigPath));
+		return iconProps.getProperty(constant_name);
+	}
 }

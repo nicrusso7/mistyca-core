@@ -3,5 +3,5 @@
 <properties>
     <entry key="AWS_LAMBDA_ACCESS_KEY">ACCESS KEY HERE!</entry>
     <entry key="AWS_LAMBDA_SECRET_KEY">SECRET KEY HERE!</entry>
-    <entry key="">SECRET KEY HERE!</entry>
+    <entry key="AWS_REGION">AWS REGION HERE!</entry>
 </properties>
