@@ -9,7 +9,7 @@ import bot.knowledge.similarity.comparators.SemanticComparator
 import scala.collection.mutable.ArrayBuffer
 import bot.knowledge.similarity.comparators.SyntaxComparator
 
-object Reasoner {
+class Reasoner(user_id:String, cache:org.apache.spark.broadcast.Broadcast[scala.collection.mutable.Map[String, (scala.collection.mutable.Map[String,Array[(String,String)]], scala.collection.mutable.Map[String,Array[(String,String)]])]]) {
   /*
    * First step function to retrieve the more similar case. It ranks all the Cases in the selected Contexts (in parallel) applying the 
    * selected Similarity Measures Model. 
@@ -59,7 +59,7 @@ object Reasoner {
       }
       else if(vertexId >= Stages.LV2_LOWER && vertexId <= Stages.LV2_UPPER) {
         //STAGE 3 - Keywords Classes Match
-        IntentRetrieval.keywordsClassesMatch(value,message)
+        IntentRetrieval.keywordsClassesMatch(value,message,cache,user_id)
       }
       else if(vertexId >= Stages.LV3_LOWER && vertexId <= Stages.LV3_UPPER) {
         //STAGE 4 - Cases Evaluation
@@ -196,7 +196,7 @@ object Reasoner {
       }
       else if(vertexId >= Stages.LV2_LOWER && vertexId <= Stages.LV2_UPPER) {
         //STAGE 3 - Keywords Classes Match
-        IntentRetrieval.keywordsClassesMatch(value,message)
+        IntentRetrieval.keywordsClassesMatch(value,message,cache,user_id)
       }
       else if(vertexId >= Stages.LV3_LOWER && vertexId <= Stages.LV3_UPPER) {
         //STAGE 4 - Cases Evaluation

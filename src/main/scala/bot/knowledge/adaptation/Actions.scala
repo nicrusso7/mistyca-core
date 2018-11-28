@@ -2,6 +2,9 @@ package bot.knowledge.adaptation
 
 import org.apache.spark.graphx._
 import org.apache.spark.rdd.RDD
+import scala.collection.mutable.ArrayBuffer
+import skills.SkillHandler
+import utils.Json
 
 object Actions {
   
@@ -52,8 +55,32 @@ object Actions {
   def SYNC_ACTION = "{syncAction}"
   
   def syncAction(value: Array[String], message: (String, Array[(String, String, (String, String), (String, String), Set[(String, String, String)])])): (String,String) = {
-    //TODO
-    null
+    //reorder args TODO rude!
+    var args:ArrayBuffer[String] = new ArrayBuffer[String]()
+    var entry:(String,String,String) = (null,null,null) 
+    message._2(0)._5.head._1.split(ARGS_MARKER).foreach { case arg =>
+      if(entry._1 == null) {
+        entry = (arg,null,null)
+      }
+      else if(entry._2 == null) {
+        entry = (null,arg,null)
+      }
+      else if(entry._3 == null) {
+        entry = (null,null,arg)
+      }
+      else {
+        args :+ (entry._1 + ARGS_MARKER + entry._3)
+        entry = (null,null,null)
+      }
+    }
+    // fill json request template
+    val parser = new Json();
+    val json_req = parser.fillJSON(args.toArray)
+    //invoke Skill Handler
+    val skillHandler = new SkillHandler()
+    //passing (Connector Name, Skill Name, Args)
+    val result = skillHandler.launchSkill(value(2), value(1), json_req)
+    (result(0),result(1))
   }
   
   /*

@@ -45,8 +45,12 @@
 
 		"name":"solve",
 
-		"params":["NUMBER","OPERATOR","NUMBER"],
-
+		"params": {
+			"NUMBER_A":"NUMBER",
+			"NUMBER_B":"NUMBER",
+			"OP":"OPERATOR"
+		},
+		
 		"language":"en-GB",
 
 		"only_operation":true,

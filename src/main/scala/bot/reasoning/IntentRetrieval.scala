@@ -38,8 +38,11 @@ object IntentRetrieval {
     Array(Stages.EVALUATED_MARKER,message._1,message._2(0)._1,message._2(0)._3._1,message._2(0)._3._2,analysis._1.toString(),analysis._2)
   }
   
-  def keywordsClassesMatch(value:Array[String], message:(String, Array[(String, String, (String, String), (String, String), Set[(String, String, String)])])): Array[String] = { 
-     val analysis = SemanticComparator.KeywordsClassesMatch(message._1.split(" "),value)
+  def keywordsClassesMatch(value:Array[String], message:(String, Array[(String, String, (String, String), (String, String), Set[(String, String, String)])]),
+      cache:org.apache.spark.broadcast.Broadcast[scala.collection.mutable.Map[String, (scala.collection.mutable.Map[String,Array[(String,String)]], scala.collection.mutable.Map[String,Array[(String,String)]])]],
+      user_id:String)
+   : Array[String] = { 
+     val analysis = SemanticComparator.KeywordsClassesMatch(message._1.split(" "),value,message._2(0)._2,cache,user_id)
     //create new vertex value and mark the vertex as evaluated
     Array(Stages.EVALUATED_MARKER,message._1) ++ message._2.map(an=> Array(an._1, an._2, an._3._1, an._3._2, an._4._1, an._4._2, analysis._1, analysis._2, analysis._3)).reduce((a,b)=>a++b)
   }

@@ -1,23 +1,33 @@
 package bot.knowledge.vocabulary
 
-object Semantic {
-	/*
+class KeywordClass(query_array:Array[String], case_keyword_class:Array[String], language:String) {
+  /*
+   * Vertices Markers
+   */
+  val BASIC_KEYWORD_MARKER = "{base}"
+  val CUSTOM_KEYWORD_MARKER = "{custom}"
+  val CONTEXT_BASED_KEYWORD_MARKER = "{base}"
+  
+  val CUSTOM_KEYWORD_DIVISOR = "{:}"
+  
+  /*
 	 * Primitives Keywords Classes
 	 */
 	val PLAIN_TEXT_CLASS = "PLAIN_TEXT"
 	val NUMBER_CLASS = "NUMBER"
-	val BASIC_KEYWORDS_CLASSES = Array(PLAIN_TEXT_CLASS,NUMBER_CLASS)
-	
-  object PLAIN_TEXT {
-    
-    def extract(input_query: Array[String], language:String) : (String,String) = {
-      (PLAIN_TEXT_CLASS,input_query.mkString(" "))
-    }
+  
+  def PLAIN_TEXT() : (String,String,String) = {
+    (PLAIN_TEXT_CLASS,"",query_array.mkString(" "))
   }
   
-	object NUMBER {
-
-		val values:Map[String,Map[String, String]] = Map(
+  def NUMBER() : (String,String,String) = {
+    val result_seq = query_array.intersect(number_values(language).keySet.toSeq) ++ query_array.intersect(number_values(language).valuesIterator.toSeq)
+    val value = if(result_seq.length > 1) result_seq.mkString(Stages.CONFLICT_MARKER) else if(result_seq.length == 0) Stages.MISSING_MARKER else result_seq(0)
+		//check (and mark) possible conflicts
+		(NUMBER_CLASS,value,value)
+  }
+  
+  val number_values:Map[String,Map[String, String]] = Map(
 				Languages.English_GB -> Map("one" -> "1",
 						"two" -> "2",
 						"three" -> "3",
@@ -220,11 +230,5 @@ object Semantic {
 						"novantanove" -> "99",
 						"cento" -> "100",
 						"zero" -> "0"))
-						
-		def extract(input_query: Array[String], language:String) : (String,String) = {
-		  val result_seq = input_query.intersect(values(language).keySet.toSeq) ++ input_query.intersect(values(language).valuesIterator.toSeq)
-		  //check (and mark) possible conflicts
-		  (NUMBER_CLASS,if(result_seq.length > 1) result_seq.mkString(Stages.CONFLICT_MARKER) else if(result_seq.length == 0) Stages.MISSING_MARKER else result_seq(0))
-		}
-	}
+		
 }

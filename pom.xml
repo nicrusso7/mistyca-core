@@ -56,17 +56,22 @@
 			<artifactId>kryo</artifactId>
 			<version>5.0.0-RC1</version>
 		</dependency>
-<!-- 		<dependency>
-			<groupId>edu.stanford.nlp</groupId>
-			<artifactId>stanford-corenlp</artifactId>
-			<version>3.9.2</version>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-lambda</artifactId>
+			<version>1.11.228</version>
 		</dependency>
 		<dependency>
-			<groupId>edu.stanford.nlp</groupId>
-			<artifactId>stanford-corenlp</artifactId>
-			<version>3.9.2</version>
-			<classifier>models-english</classifier>
-		</dependency> -->
+			<groupId>org.scalactic</groupId>
+			<artifactId>scalactic_2.11</artifactId>
+			<version>3.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.scalatest</groupId>
+			<artifactId>scalatest_2.11</artifactId>
+			<version>3.0.4</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 
@@ -78,6 +83,11 @@
 			<id>central</id>
 			<name>Central Repository</name>
 			<url>https://repo.maven.apache.org/maven2</url>
+		</repository>
+		<repository>
+			<id>artima</id>
+			<name>Artima Maven Repository</name>
+			<url>http://repo.artima.com/releases</url>
 		</repository>
 		<repository>
 			<id>scala-tools.org</id>
@@ -133,6 +143,21 @@
 								<goal>single</goal>
 							</goals>
 						</execution>
+					</executions>
+				</plugin>
+				<plugin>
+					<groupId>net.alchim31.maven</groupId>
+					<artifactId>scala-maven-plugin</artifactId>
+					<configuration>
+						<compilerPlugins>
+							<compilerPlugin>
+								<groupId>com.artima.supersafe</groupId>
+								<artifactId>supersafe_2.11</artifactId>
+								<version>1.1.3</version>
+							</compilerPlugin>
+						</compilerPlugins>
+					</configuration>
+					<executions>
 					</executions>
 				</plugin>
 			</plugins>
