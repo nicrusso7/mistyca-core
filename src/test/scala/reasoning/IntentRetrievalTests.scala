@@ -1,20 +1,12 @@
 package reasoning
 
 import org.scalatest.FunSuite
-import org.scalatest.BeforeAndAfter
-
 import bot.reasoning.IntentRetrieval
 import bot.knowledge.vocabulary.Stages
 
 import scala.collection.mutable.ArrayBuffer
 
-class IntentRetrievalTests extends FunSuite with BeforeAndAfter {
-  
-  var value_in:ArrayBuffer[String] = _
-
-  before {
-    value_in = new ArrayBuffer[String]()
-  }
+class IntentRetrievalTests extends FunSuite {
   
   test("Verb Match/Pattern Match function Test") {
     //fill value
@@ -62,7 +54,7 @@ class IntentRetrievalTests extends FunSuite with BeforeAndAfter {
     
     val message_3:(String, Array[(String, String, (String, String), (String, String), Set[(String, String, String)])]) = ("turn lights living", Array((null, null, ("0.0",Stages.MISSING_MARKER), null, null)))
     val analysis_3 = IntentRetrieval.PatternPercentageMatch(value, message_3)
-    //33% test
+    //0% test
     assert(analysis_3(5).toDouble == 0.0)
     //check extraction
     assert(analysis_3(6) == Stages.MISSING_MARKER)

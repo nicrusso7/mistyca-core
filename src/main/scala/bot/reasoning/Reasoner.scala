@@ -9,23 +9,22 @@ import bot.knowledge.similarity.comparators.SemanticComparator
 import scala.collection.mutable.ArrayBuffer
 import bot.knowledge.similarity.comparators.SyntaxComparator
 
-class Reasoner(user_id:String, cache:org.apache.spark.broadcast.Broadcast[scala.collection.mutable.Map[String, (scala.collection.mutable.Map[String,Array[(String,String)]], scala.collection.mutable.Map[String,Array[(String,String)]])]]) {
+class Reasoner() {
+   //user_id:String, cache:org.apache.spark.broadcast.Broadcast[scala.collection.mutable.Map[String, (scala.collection.mutable.Map[String,Array[(String,String)]], scala.collection.mutable.Map[String,Array[(String,String)]])]]) 
   /*
    * First step function to retrieve the more similar case. It ranks all the Cases in the selected Contexts (in parallel) applying the 
    * selected Similarity Measures Model. 
    */
   def evaluateCases(cases_graph:Graph[Array[String], String], input_query:String, sim_measures_model:String) : Graph[Array[String], String] = {
-    
+    //Message format => (Input_Query, Array(Context.Action_Name, Language, (Stanford_Match,Form_Parsed)*, (Patterns_Match,Pattern_Parsed), Set(Keywords_Class,Keyword,Keyword_Parsed)))
+    //* null for SEMANTIC_ONLY
+    val initialMsg: (String, Array[(String, String, (String,String), (String,String), Set[(String,String,String)])]) = (input_query, null)
     sim_measures_model match {
       
       case Measures.SEMANTIC_ONLY => {
-        //Message format => (Input_Query, Array(Context.Action_Name, Language, (Verb_Match,Verb_Parsed), (Patterns_Percent_Match,Pattern_Parsed), Set(Keywords_Class,Keyword,Keyword_Parsed)))
-        val initialMsg: (String, Array[(String, String, (String,String), (String,String), Set[(String,String,String)])]) = (input_query, null)
 	      cases_graph.pregel(initialMsg, Integer.MAX_VALUE, EdgeDirection.Out)(vprog_sem, sendMsg_sem, mergeMsg_sem)
       }
       case Measures.SYNTAX_SEMANTIC => {
-        //Message format => (Input_Query, Array(Context.Action_Name, Language, (Stanford_Match,Form_Parsed), (Patterns_Match,Pattern_Parsed), Set(Keywords_Class,Keyword,Keyword_Parsed)))
-        val initialMsg: (String, Array[(String, String, (String,String), (String,String), Set[(String,String,String)])]) = (input_query, null)
 	      cases_graph.pregel(initialMsg, Integer.MAX_VALUE, EdgeDirection.Out)(vprog_syn_sem, sendMsg_syn_sem, mergeMsg_syn_sem)
       }
       case _ => {
@@ -42,9 +41,9 @@ class Reasoner(user_id:String, cache:org.apache.spark.broadcast.Broadcast[scala.
   def vprog_sem(vertexId: VertexId, value: Array[String], message: (String, Array[(String, String, (String,String), (String,String), Set[(String,String,String)])])): Array[String] = {
     if(message._2 == null) {
       //initial message pulsing, all neurons are stimulated
-      if(vertexId <= Stages.LV0_UPPER) {
-        //STAGE 1 - Verb Match
-        IntentRetrieval.verbMatch(value,message)
+      if(vertexId <= Stages.LV1_UPPER) {
+        //STAGE 1 - Pattern Percentage Match
+        IntentRetrieval.PatternPercentageMatch(value,message)
       }
       else {
         //neuron not involved, return same value
@@ -53,28 +52,24 @@ class Reasoner(user_id:String, cache:org.apache.spark.broadcast.Broadcast[scala.
     }
     else {
       //evaluate stages
-      if(vertexId >= Stages.LV1_LOWER && vertexId <= Stages.LV1_UPPER) {
-        //STAGE 2 - Pattern Percentage Match
-        IntentRetrieval.PatternPercentageMatch(value,message)
-      }
-      else if(vertexId >= Stages.LV2_LOWER && vertexId <= Stages.LV2_UPPER) {
-        //STAGE 3 - Keywords Classes Match
-        IntentRetrieval.keywordsClassesMatch(value,message,cache,user_id)
+      if(vertexId >= Stages.LV2_LOWER && vertexId <= Stages.LV2_UPPER) {
+        //STAGE 2 - Keywords Classes Match
+        IntentRetrieval.keywordsClassesMatch(value,message)
       }
       else if(vertexId >= Stages.LV3_LOWER && vertexId <= Stages.LV3_UPPER) {
-        //STAGE 4 - Cases Evaluation
-        IntentRetrieval.casesEvaluation(value,message)
+        //STAGE 3 - Cases Evaluation
+        IntentRetrieval.casesEvaluation(message)
       }
       else if(vertexId == Stages.LV4) {
-        //STAGE 5 - Contexts Evaluation
+        //STAGE 4 - Contexts Evaluation
         IntentRetrieval.contextsEvaluation(value,message)
       }
       else if(vertexId >= Stages.LV5_LOWER && vertexId <= Stages.LV5_UPPER) {
-        //STAGE 6 - Perform Action
+        //STAGE 5 - Perform Action
         IntentAdaptation.performAction(value,message)
       }
       else {
-        //STAGE 7 - Answer
+        //STAGE 6 - Answer
         IntentAdaptation.answer(value,message)
       }
     }
@@ -83,16 +78,12 @@ class Reasoner(user_id:String, cache:org.apache.spark.broadcast.Broadcast[scala.
   def sendMsg_sem(triplet: EdgeTriplet[Array[String], String]): Iterator[(VertexId, (String, Array[(String, String, (String,String), (String,String), Set[(String,String,String)])]))] = {
     if(triplet.srcAttr(0).equals(Stages.EVALUATED_MARKER)) {
       //evaluate stage
-      if(triplet.srcId <= Stages.LV0_UPPER) {
+      if(triplet.srcId <= Stages.LV1_UPPER) {
         //pulse stage 2
-        Iterator((triplet.dstId,(triplet.srcAttr(1), Array((triplet.attr, null, (triplet.srcAttr(2),triplet.srcAttr(3)), null, null)))))
-      }
-      else if(triplet.srcId >= Stages.LV1_LOWER && triplet.srcId <= Stages.LV1_UPPER) {
-        //pulse stage 3
-        Iterator((triplet.dstId,(triplet.srcAttr(1), Array((triplet.srcAttr(2), triplet.attr, (triplet.srcAttr(3),triplet.srcAttr(4)),(triplet.srcAttr(5),triplet.srcAttr(6)),null)))))
+        Iterator((triplet.dstId,(triplet.srcAttr(1), Array((triplet.attr.split(":")(1), triplet.attr.split(":")(0), null, (triplet.srcAttr(2),triplet.srcAttr(3)), null)))))
       }
       else if(triplet.srcId >= Stages.LV2_LOWER && triplet.srcId <= Stages.LV2_UPPER) {
-        //pulse stage 4
+        //pulse stage 3
         //isolate analysis array 
         val analysis_array = triplet.srcAttr.drop(2)
         //filter by Context.Action_Name
@@ -196,11 +187,11 @@ class Reasoner(user_id:String, cache:org.apache.spark.broadcast.Broadcast[scala.
       }
       else if(vertexId >= Stages.LV2_LOWER && vertexId <= Stages.LV2_UPPER) {
         //STAGE 3 - Keywords Classes Match
-        IntentRetrieval.keywordsClassesMatch(value,message,cache,user_id)
+        IntentRetrieval.keywordsClassesMatch(value,message)
       }
       else if(vertexId >= Stages.LV3_LOWER && vertexId <= Stages.LV3_UPPER) {
         //STAGE 4 - Cases Evaluation
-        IntentRetrieval.casesEvaluation(value,message)
+        IntentRetrieval.casesEvaluation(message)
       }
       else if(vertexId == Stages.LV4) {
         //STAGE 5 - Contexts Evaluation

@@ -35,23 +35,30 @@ object IntentRetrieval {
   def PatternPercentageMatch(value:Array[String], message:(String, Array[(String, String, (String, String), (String, String), Set[(String, String, String)])])): Array[String] = { 
     val analysis = SemanticComparator.PatternPercentageMatch(message._1.split(" "),value)
     //create new vertex value and mark the vertex as evaluated
-    Array(Stages.EVALUATED_MARKER,message._1,message._2(0)._1,message._2(0)._3._1,message._2(0)._3._2,analysis._1.toString(),analysis._2)
+    Array(Stages.EVALUATED_MARKER,message._1,analysis._1.toString(),analysis._2)
   }
   
-  def keywordsClassesMatch(value:Array[String], message:(String, Array[(String, String, (String, String), (String, String), Set[(String, String, String)])]),
-      cache:org.apache.spark.broadcast.Broadcast[scala.collection.mutable.Map[String, (scala.collection.mutable.Map[String,Array[(String,String)]], scala.collection.mutable.Map[String,Array[(String,String)]])]],
-      user_id:String)
-   : Array[String] = { 
-     val analysis = SemanticComparator.KeywordsClassesMatch(message._1.split(" "),value,message._2(0)._2,cache,user_id)
-    //create new vertex value and mark the vertex as evaluated
-    Array(Stages.EVALUATED_MARKER,message._1) ++ message._2.map(an=> Array(an._1, an._2, an._3._1, an._3._2, an._4._1, an._4._2, analysis._1, analysis._2, analysis._3)).reduce((a,b)=>a++b)
+  def keywordsClassesMatch(value:Array[String], message:(String, Array[(String, String, (String, String), (String, String), Set[(String, String, String)])])) : Array[String] = { 
+//      cache:org.apache.spark.broadcast.Broadcast[scala.collection.mutable.Map[String, (scala.collection.mutable.Map[String,Array[(String,String)]], scala.collection.mutable.Map[String,Array[(String,String)]])]],
+//      user_id:String
+    val analysis = SemanticComparator.KeywordsClassesMatch(message._1.split(" "),value,message._2(0)._2)
+    if(message._2(0)._3 == null) {
+      //semantic-only model
+      //create new vertex value and mark the vertex as evaluated
+      Array(Stages.EVALUATED_MARKER,message._1) ++ message._2.map(an=> Array(an._1, an._2, "N.A.","N.A.", an._4._1, an._4._2, analysis._1, analysis._2, analysis._3)).reduce((a,b)=>a++b)
+    }
+    else {
+      //syn-sem model
+      //create new vertex value and mark the vertex as evaluated
+      Array(Stages.EVALUATED_MARKER,message._1) ++ message._2.map(an=> Array(an._1, an._2, an._3._1, an._3._2, an._4._1, an._4._2, analysis._1, analysis._2, analysis._3)).reduce((a,b)=>a++b)
+    }
   }
   
-  def casesEvaluation(value:Array[String], message:(String, Array[(String, String, (String, String), (String, String), Set[(String, String, String)])])): Array[String] = {
+  def casesEvaluation(message:(String, Array[(String, String, (String, String), (String, String), Set[(String, String, String)])])): Array[String] = {
     //group msgs by Context.Action and Language_ID
     val zipped_analysis = message._2.groupBy(f=>(f._1,f._2,f._3,f._4)).map(f=>f._1->f._2.map(h=>(h._5)))
     //resolve conflicts between Keywords Classes (eventually) and weighs the coefficients
-    val cleaned_analysis = zipped_analysis.map(act=>(act._1._1,act._1._2,(act._1._3._1.toDouble*0.5+act._1._4._1.toDouble*0.5).toString(),act._1._3._2,act._1._4._2)->resolveConflicts(act._2.reduce((x,y)=> x++y).toArray))
+    val cleaned_analysis = zipped_analysis.map(act=>(act._1._1,act._1._2, if(!act._1._3._1.equals("N.A.")) (act._1._3._1.toDouble*0.5+act._1._4._1.toDouble*0.5).toString() else act._1._4._1,act._1._3._2,act._1._4._2)->resolveConflicts(act._2.reduce((x,y)=> x++y).toArray))
     //retain non-missed non-ambiguous cases
     val retained_analysis = cleaned_analysis.filter(an=>an._2.forall(pair=> !pair._2.equals(Stages.MISSING_MARKER)))
     if(retained_analysis.isEmpty){
@@ -104,20 +111,41 @@ object IntentRetrieval {
         if(arg._2.contains(Stages.CONFLICT_MARKER)) {
           var partial_cleaned_args:Array[(String, String, String)] = Array.empty;
           val other_args_set = args.diff(Array(arg))
-		      val other_args_array = other_args_set.map(a=>a._2).toArray
-		      val canditates_args_array = arg._2.split(Stages.CONFLICT_MARKER)
-		      val regex = new Regex()
-          for(cand<-canditates_args_array) {
-            if(!regex.contains(cand, other_args_array)) {
-              partial_cleaned_args :+ ((arg._1,cand,arg._3))
+          if(other_args_set.filter(p=> p._1.equals(arg._1)).length > 0) {
+            //cardinality conflict
+            val involved_args = Array(arg) ++ other_args_set.filter(p=> p._1.equals(arg._1))
+            val arg_cardinality = involved_args.length
+            val canditates_args_array = arg._2.split(Stages.CONFLICT_MARKER)
+            if(canditates_args_array.length == arg_cardinality) {
+              //resolve all conflict
+              canditates_args_array.foreach(value=> cleaned_args :+ ((arg._1,value,value)))
+              //merge with other args
+              cleaned_args = cleaned_args ++ (args.diff(involved_args))
+              //restart process
+              resolveConflicts(cleaned_args)
+            }
+            else {
+              //ambiguity, mark it
+              cleaned_args :+ ((arg._1,Stages.AMBIGUOUS_MARKER))
             }
           }
-          if(partial_cleaned_args.length == 1) {
-            cleaned_args = cleaned_args ++ partial_cleaned_args
-          }
           else {
-            //ambiguity, mark it
-            cleaned_args :+ ((arg._1,Stages.AMBIGUOUS_MARKER))
+            //composition conflict
+            val other_args_array = other_args_set.map(a=>a._2).toArray
+  		      val canditates_args_array = arg._2.split(Stages.CONFLICT_MARKER)
+  		      val regex = new Regex()
+            for(cand<-canditates_args_array) {
+              if(!regex.contains(cand, other_args_array)) {
+                partial_cleaned_args :+ ((arg._1,cand,arg._3))
+              }
+            }
+            if(partial_cleaned_args.length == 1) {
+              cleaned_args = cleaned_args ++ partial_cleaned_args
+            }
+            else {
+              //ambiguity, mark it
+              cleaned_args :+ ((arg._1,Stages.AMBIGUOUS_MARKER))
+            }
           }
         }
         else {

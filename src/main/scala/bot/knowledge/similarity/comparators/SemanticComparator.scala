@@ -61,9 +61,9 @@ object SemanticComparator {
    *  
    * Returns a tuple with the Keyword and the formal value parsed or the missing marker.  
    */
-  def KeywordsClassesMatch(query_array:Array[String], case_keyword_class:Array[String], language:String, 
-      cache: org.apache.spark.broadcast.Broadcast[scala.collection.mutable.Map[String, (scala.collection.mutable.Map[String,Array[(String,String)]], scala.collection.mutable.Map[String,Array[(String,String)]])]],
-      user_id:String) : (String,String,String) = {
+  def KeywordsClassesMatch(query_array:Array[String], case_keyword_class:Array[String], language:String) : (String,String,String) = {
+//      cache: org.apache.spark.broadcast.Broadcast[scala.collection.mutable.Map[String, (scala.collection.mutable.Map[String,Array[(String,String)]], scala.collection.mutable.Map[String,Array[(String,String)]])]],
+//      user_id:String
     //evaluate KC type
     val kc = new KeywordClass(query_array,case_keyword_class,language)
     case_keyword_class(0) match {
@@ -76,7 +76,7 @@ object SemanticComparator {
         //search in the vertex values
         val custom_values = case_keyword_class.drop(2)
         val regex = new Regex()
-        val matches = case_keyword_class.filter(k=> regex.containsWord(k.split(kc.CUSTOM_KEYWORD_DIVISOR)(0), query_array.mkString(" ")))
+        val matches = custom_values.filter(k=> regex.containsWord(k.split(kc.CUSTOM_KEYWORD_DIVISOR)(0), query_array.mkString(" ")))
         if(matches.length == 1) {
           (case_keyword_class(1),matches(0).split(kc.CUSTOM_KEYWORD_DIVISOR)(0),matches(0).split(kc.CUSTOM_KEYWORD_DIVISOR)(1))
         }
@@ -86,17 +86,17 @@ object SemanticComparator {
         }
       }
       case kc.CONTEXT_BASED_KEYWORD_MARKER => {
-        //search in the broadcasted cache map
-        val collection = cache.value(user_id)._2(case_keyword_class(1))
-        val regex = new Regex()
-        val matches = collection.filter(k=> regex.containsWord(k._1, query_array.mkString(" ")))
-        if(matches.length == 1) {
-          (case_keyword_class(1),matches(0)._1,matches(0)._2)
-        }
-        else {
-          //this means no match OR multiple match. Mark as missing.
+        //search in the broadcasted cache map TODO
+//        val collection = cache.value(user_id)._2(case_keyword_class(1))
+//        val regex = new Regex()
+//        val matches = collection.filter(k=> regex.containsWord(k._1, query_array.mkString(" ")))
+//        if(matches.length == 1) {
+//          (case_keyword_class(1),matches(0)._1,matches(0)._2)
+//        }
+//        else {
+//          //this means no match OR multiple match. Mark as missing.
           (case_keyword_class(1),Stages.MISSING_MARKER,Stages.MISSING_MARKER)
-        }
+//        }
       }
     }
   }

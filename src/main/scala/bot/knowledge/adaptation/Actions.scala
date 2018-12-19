@@ -4,7 +4,12 @@ import org.apache.spark.graphx._
 import org.apache.spark.rdd.RDD
 import scala.collection.mutable.ArrayBuffer
 import skills.SkillHandler
+import bot.knowledge.vocabulary.Stages
 import utils.Json
+
+import org.apache.spark.SparkContext
+import api.persistence.Datastore
+import bot.knowledge.vocabulary.Contexts
 
 object Actions {
   
@@ -23,19 +28,63 @@ object Actions {
   /*
    * Training functions
    */
-  def train(json_training:String) : String = {
-    return "TODO";
+  def train(sc: SparkContext, json_training: String, persistResult: Boolean) : String = {
+    var resume = ""
+    //parse context json
+    val parser = new Json()
+    val args = parser.parseJSONArray(json_training, "actions")
+    //root node LV4
+    val root = (Stages.LV4, Array(Stages.LV4_VALUE))
+    //parse context
+    val context = args.get(0).get("context") 
+    //build graph
+    args.keySet().toArray().foreach{ case action_index =>
+      val action = args.get(action_index)
+      var vertices = new ArrayBuffer[(VertexId,Array[String])]()
+      var edges = new ArrayBuffer[Edge[String]]()
+      //add root
+      vertices += root
+      //build action vertex value
+      val vertex_value = Array(action.get("type"), action.get("name"), action.get("connector"))
+      //assign progressive ids, CaseFactory will map them
+      val vertex_action = (Stages.LV5_LOWER,vertex_value)
+      vertices += vertex_action
+      //edge to root
+      val root_edge = Edge(root._1,vertex_action._1,context+"."+vertex_action._2(1))
+      edges += root_edge
+      //link result codes and speeches
+      val speeches = parser.parseJSONObject(action.get("speeches"))
+      var speech_count = 0
+      speeches.keySet().toArray().foreach { case code =>
+        val speech_vertex_value = parser.parseJSONArray(speeches.get(code))
+        //assign progressive ids, CaseFactory will map them
+        val vertex_speech = (Stages.LV6_LOWER + speech_count,speech_vertex_value)
+        //link edge with code
+        val action_edge = Edge(vertex_action._1,vertex_speech._1,code+"_"+action.get("language"))
+        //store vertex and edge
+        vertices += vertex_speech
+        edges += action_edge
+        speech_count = speech_count + 1
+      }
+      //if action already exists, replace it
+      val action_path = Contexts.CONTEXTS_BASE_PATH + context + "/actions/" + action.get("language") + "/"
+      if(persistResult) {
+        //parallelize
+        val graph_vertices: RDD[(VertexId, Array[String])] = sc.parallelize(vertices)
+        val graph_edges: RDD[Edge[String]] = sc.parallelize(edges)
+        Datastore.createFolder(sc, action_path)
+        //store RDDs
+  		  Datastore.saveAsObjectFile[(VertexId, Array[String])](graph_vertices, action_path);
+  		  Datastore.saveAsObjectFile[Edge[String]](graph_edges, action_path);
+      }
+		  //build resume
+      resume = resume + "\n" + action_path + "\n" + "[New vertices: " + vertices.map(f=> (f._1,f._2.mkString("|"))).mkString(",") + "]"  + "\n" + "[New edges: " + edges.mkString(",") + "]"
+    }
+    return resume;
   }
   
   def export(path:String) : String = {
     return "TODO";
-  }
-  
-  /*
-   * Build the Cases Graph LV5-6 
-   */
-  def buildGraph(vertices:RDD[(VertexId, (String, String))], edges:RDD[Edge[String]]) : Graph[Array[String], String] = {
-    return null;
   }
   
   /*

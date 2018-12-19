@@ -6,7 +6,7 @@ class KeywordClass(query_array:Array[String], case_keyword_class:Array[String], 
    */
   val BASIC_KEYWORD_MARKER = "{base}"
   val CUSTOM_KEYWORD_MARKER = "{custom}"
-  val CONTEXT_BASED_KEYWORD_MARKER = "{base}"
+  val CONTEXT_BASED_KEYWORD_MARKER = "{context_based}"
   
   val CUSTOM_KEYWORD_DIVISOR = "{:}"
   
@@ -15,6 +15,7 @@ class KeywordClass(query_array:Array[String], case_keyword_class:Array[String], 
 	 */
 	val PLAIN_TEXT_CLASS = "PLAIN_TEXT"
 	val NUMBER_CLASS = "NUMBER"
+	val BASIC_CLASSES = Array(PLAIN_TEXT_CLASS,NUMBER_CLASS)
   
   def PLAIN_TEXT() : (String,String,String) = {
     (PLAIN_TEXT_CLASS,"",query_array.mkString(" "))
