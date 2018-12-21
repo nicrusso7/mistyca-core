@@ -9,11 +9,11 @@ import bot.knowledge.cases.CaseFactory
 class TrainingTest extends FunSuite {
   test("Train Actions Test") {
     val json_training = Source.fromURL(getClass.getResource("/Math_SKILL.json")).mkString
-    println(Actions.train(null, json_training, false))
+    println(Actions.train(null, json_training, false)._1)
   }
   
-  test("Train Actions Test") {
+  test("Train Cases Test") {
     val json_training = Source.fromURL(getClass.getResource("/Math_SKILL.json")).mkString
-    println(CaseFactory.train(null, json_training, false))
+    println(CaseFactory.train(null, json_training, false)._1)
   }
 }

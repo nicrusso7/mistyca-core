@@ -20,7 +20,7 @@ object Mistyca {
     val actions_resume = Actions.train(sc, json_training, true)
     //learn intents (cases)
     val intents_resume = CaseFactory.train(sc, json_training, true)
-    (ctx_resume,actions_resume,intents_resume)
+    (ctx_resume,actions_resume._1,intents_resume._1)
   }
   
   def ask(sentence: String, knowledge: Graph[Array[String], String], sim_measures_model:String) : String = {

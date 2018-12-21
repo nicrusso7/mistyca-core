@@ -90,7 +90,7 @@ class Reasoner() {
         var filtered_analysis = ArrayBuffer[(String, String, (String,String), (String,String), Set[(String,String,String)])]()
         //TODO omg, we can do better...
         for(i<-1 to analysis_array.length/9){
-          if(analysis_array(9*(i-1)).equals(triplet.attr)) {
+          if((analysis_array((9*(i-1))+1) + ":" + analysis_array(9*(i-1))).equals(triplet.attr)) {
             filtered_analysis += ((analysis_array(9*(i-1)), analysis_array((9*(i-1))+1), (analysis_array((9*(i-1))+2), analysis_array((9*(i-1))+3)), (analysis_array((9*(i-1))+4), analysis_array((9*(i-1))+5)), 
                 Set((analysis_array((9*(i-1))+6),analysis_array((9*(i-1))+7),analysis_array((9*(i-1))+8)))))
           }

@@ -28,13 +28,13 @@ object Actions {
   /*
    * Training functions
    */
-  def train(sc: SparkContext, json_training: String, persistResult: Boolean) : String = {
+  def train(sc: SparkContext, json_training: String, persistResult: Boolean) : (String, RDD[(VertexId, Array[String])], RDD[Edge[String]]) = {
     var resume = ""
+    var graph_vertices: RDD[(VertexId, Array[String])] = null;
+    var graph_edges: RDD[Edge[String]] = null;
     //parse context json
     val parser = new Json()
     val args = parser.parseJSONArray(json_training, "actions")
-    //root node LV4
-    val root = (Stages.LV4, Array(Stages.LV4_VALUE))
     //parse context
     val context = args.get(0).get("context") 
     //build graph
@@ -42,15 +42,13 @@ object Actions {
       val action = args.get(action_index)
       var vertices = new ArrayBuffer[(VertexId,Array[String])]()
       var edges = new ArrayBuffer[Edge[String]]()
-      //add root
-      vertices += root
       //build action vertex value
       val vertex_value = Array(action.get("type"), action.get("name"), action.get("connector"))
       //assign progressive ids, CaseFactory will map them
       val vertex_action = (Stages.LV5_LOWER,vertex_value)
       vertices += vertex_action
       //edge to root
-      val root_edge = Edge(root._1,vertex_action._1,context+"."+vertex_action._2(1))
+      val root_edge = Edge(Stages.LV4,vertex_action._1,context+"."+vertex_action._2(1))
       edges += root_edge
       //link result codes and speeches
       val speeches = parser.parseJSONObject(action.get("speeches"))
@@ -70,17 +68,17 @@ object Actions {
       val action_path = Contexts.CONTEXTS_BASE_PATH + context + "/actions/" + action.get("language") + "/"
       if(persistResult) {
         //parallelize
-        val graph_vertices: RDD[(VertexId, Array[String])] = sc.parallelize(vertices)
-        val graph_edges: RDD[Edge[String]] = sc.parallelize(edges)
+        graph_vertices = sc.parallelize(vertices)
+        graph_edges = sc.parallelize(edges)
         Datastore.createFolder(sc, action_path)
         //store RDDs
-  		  Datastore.saveAsObjectFile[(VertexId, Array[String])](graph_vertices, action_path);
-  		  Datastore.saveAsObjectFile[Edge[String]](graph_edges, action_path);
+  		  Datastore.saveAsObjectFile[(VertexId, Array[String])](graph_vertices, action_path + "vertices")
+  		  Datastore.saveAsObjectFile[Edge[String]](graph_edges, action_path + "edges")
       }
 		  //build resume
       resume = resume + "\n" + action_path + "\n" + "[New vertices: " + vertices.map(f=> (f._1,f._2.mkString("|"))).mkString(",") + "]"  + "\n" + "[New edges: " + edges.mkString(",") + "]"
     }
-    return resume;
+    return (resume, graph_vertices, graph_edges)
   }
   
   def export(path:String) : String = {

@@ -51,6 +51,52 @@
 				"divided_by":"/"
 			}
 		}
+	},
+	{
+	
+		"utterances": {
+			
+			"0":"quanto fa cinque per venti",
+			
+			"1":"calcola 12 meno 88",
+			
+			"2":"quant'è undici più due",
+			
+			"3":"quanto fa cinque diviso dieci"
+		},
+
+		"tags": {
+		
+			"0":"cinque,per,venti",
+			
+			"1":"12,meno,88",
+			
+			"2":"undici,più,due",
+			
+			"3":"cinque,diviso,dieci"
+		},
+		
+		"context":"MATH",
+
+		"action":"solve",
+
+		"language":"it-IT",
+
+		"keywords_classes":["NUMBER","OPERATOR","NUMBER"],
+
+		"custom_classes_definition": {
+			
+			"OPERATOR": {
+
+				"per":"*",
+				
+				"meno":"-",
+
+				"più":"+",
+
+				"diviso":"/"
+			}
+		}
 	}],
 
 	"actions": [{
@@ -72,6 +118,27 @@
 			"500":["Divisions by zero are not allowed!"],
 
 			"501":["This is not a valid expression!","I'm not able to solve this expression"]
+		}
+	},
+	{
+	
+		"context":"MATH",
+
+		"name":"solve",
+
+		"connector":"AWSLambdaConnector",
+		
+		"type":"{syncAction}",
+		
+		"language":"it-IT",
+
+		"speeches": {
+
+			"200":["Il risultato è %s","%s"],
+
+			"500":["0 non può essere un divisore!"],
+
+			"501":["Questa non è un espressione valida!","Non sono in grado di risolvere questa espressione, mi dispiace."]
 		}
 	}]
 }

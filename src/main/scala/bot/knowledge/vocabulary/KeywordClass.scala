@@ -16,6 +16,12 @@ class KeywordClass(query_array:Array[String], case_keyword_class:Array[String], 
 	val PLAIN_TEXT_CLASS = "PLAIN_TEXT"
 	val NUMBER_CLASS = "NUMBER"
 	val BASIC_CLASSES = Array(PLAIN_TEXT_CLASS,NUMBER_CLASS)
+	/*
+	 * Primitives Keywords Classes IDs
+	 */
+	val basic_ids: Map[String,Long] = Map(
+	    PLAIN_TEXT_CLASS -> 2000000000000000000L,
+	    NUMBER_CLASS -> 2000000000000000001L)
   
   def PLAIN_TEXT() : (String,String,String) = {
     (PLAIN_TEXT_CLASS,"",query_array.mkString(" "))

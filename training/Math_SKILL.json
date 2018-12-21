@@ -51,6 +51,52 @@
 				"divided_by":"/"
 			}
 		}
+	},
+	{
+	
+		"utterances": {
+			
+			"0":"quanto fa cinque per venti",
+			
+			"1":"calcola 12 meno 88",
+			
+			"2":"quant'è undici più due",
+			
+			"3":"quanto fa cinque diviso dieci"
+		},
+
+		"tags": {
+		
+			"0":"cinque,per,venti",
+			
+			"1":"12,meno,88",
+			
+			"2":"undici,più,due",
+			
+			"3":"cinque,diviso,dieci"
+		},
+		
+		"context":"MATH",
+
+		"action":"solve",
+
+		"language":"it-IT",
+
+		"keywords_classes":["NUMBER","OPERATOR","NUMBER"],
+
+		"custom_classes_definition": {
+			
+			"OPERATOR": {
+
+				"per":"*",
+				
+				"meno":"-",
+
+				"più":"+",
+
+				"diviso":"/"
+			}
+		}
 	}],
 
 	"actions": [{
