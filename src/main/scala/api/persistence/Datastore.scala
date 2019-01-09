@@ -28,8 +28,8 @@ object Datastore {
 		if (fs.exists(new Path(path))) {
 		  fs.delete(new Path(path), true);
 		}
-		//create path
-		fs.create(new Path(path))
+		//create folder
+		fs.mkdirs(new Path(path))
 	}
 
 	/*

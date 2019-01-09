@@ -10,7 +10,7 @@ import org.json.JSONObject;
 
 public class Json {
 	
-	private final String ARGS_MARKER = "{=}";
+	private final String ARGS_MARKER = "_=_";
 
 	public String fillJSON(String[] args) {
 		JSONObject template = new JSONObject();
@@ -19,7 +19,7 @@ public class Json {
 			String[] pair = arg.split(ARGS_MARKER);
 			//add them to json request
 			if(template.has(pair[0])) {
-				int index = template.getJSONObject(pair[0]).keySet().size() + 1;
+				int index = template.getJSONObject(pair[0]).keySet().size();
 				//add to template
 				template.getJSONObject(pair[0]).put(String.valueOf(index), pair[1]);
 			}

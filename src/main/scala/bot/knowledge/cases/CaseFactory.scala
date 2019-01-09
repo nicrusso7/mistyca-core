@@ -12,6 +12,7 @@ import org.apache.spark.SparkContext
 import api.persistence.Datastore
 import bot.knowledge.vocabulary.Contexts
 import bot.knowledge.vocabulary.KeywordClass
+import bot.knowledge.adaptation.Actions
 
 object CaseFactory {
   
@@ -26,8 +27,11 @@ object CaseFactory {
     val args = parser.parseJSONArray(json_training, "intents")
     //parse context
     val context = args.get(0).get("context")    
+    //init ID counters
     var LV1_count = 0
-    var LV2_count = 0
+    //add offset Basic Keywords
+    val keyword_class_instance = new KeywordClass(null,null,null)
+    var LV2_count = 0 + keyword_class_instance.basic_ids.keySet.size
     var LV3_count = 0
     //cases_path -> (vertices,edges)
     var cases_map = scala.collection.mutable.Map[String, (ArrayBuffer[(VertexId,Array[String])], ArrayBuffer[Edge[String]])]()
@@ -76,21 +80,22 @@ object CaseFactory {
       keywords_classes.foreach{ case kc_name =>
         //check if already involved in others intents
         val kc_stored = vertices.filter(v=> v._1 >= Stages.LV2_LOWER && v._1 <= Stages.LV2_UPPER && v._2(1).equals(kc_name))
-        val keyword_class_instance = new KeywordClass(null,null,null)
+        
         if(kc_stored.length > 0) {
           //already involved
           //attach edge
-          edges += Edge(LV1_vertex._1, kc_stored(0)._1, intent.get("language"))
+          edges += Edge(LV1_vertex._1, kc_stored(0)._1, intent.get("language") + ":" + context + "." + intent.get("action"))
         }
         else {
           //evaluate KC type
           //is basic?
           if(keyword_class_instance.BASIC_CLASSES.contains(kc_name)) {
             // attach edge from LV1
-            edges += Edge(LV1_vertex._1, keyword_class_instance.basic_ids.get(kc_name).get, intent.get("language"))
-            //add edge LV2-LV3
-            edges += Edge(keyword_class_instance.basic_ids.get(kc_name).get, root_LV3._1, intent.get("language") + ":" + context + "." + intent.get("action"))
-            
+            edges += Edge(LV1_vertex._1, keyword_class_instance.basic_ids.get(kc_name).get, intent.get("language") + ":" + context + "." + intent.get("action"))
+            //add edge LV2-LV3 (if not present)
+            if(edges.filter(p=> p.srcId == keyword_class_instance.basic_ids.get(kc_name).get && p.dstId == root_LV3._1 && p.attr.equals(intent.get("language") + ":" + context + "." + intent.get("action"))).length == 0) {
+              edges += Edge(keyword_class_instance.basic_ids.get(kc_name).get, root_LV3._1, intent.get("language") + ":" + context + "." + intent.get("action"))
+            }
           }//TODO switch-case adding context based KC.
           else {
             //custom KC, extract values
@@ -98,7 +103,7 @@ object CaseFactory {
             //map values into vertex
             val LV2_vertex = (Stages.LV2_LOWER+LV2_count, Array(keyword_class_instance.CUSTOM_KEYWORD_MARKER,kc_name) ++ values_map.keySet().toArray().map(k=> k + keyword_class_instance.CUSTOM_KEYWORD_DIVISOR + values_map.get(k)))
             // attach edge from LV1
-            edges += Edge(LV1_vertex._1, LV2_vertex._1, intent.get("language"))
+            edges += Edge(LV1_vertex._1, LV2_vertex._1, intent.get("language") + ":" + context + "." + intent.get("action"))
             //persist LV2 vertex
             vertices += LV2_vertex
             //add edge LV2-LV3
@@ -144,7 +149,13 @@ object CaseFactory {
     var knowledge_vertices:ArrayBuffer[RDD[(VertexId, Array[String])]] = new ArrayBuffer[RDD[(VertexId, Array[String])]]()
     var knowledge_edges:ArrayBuffer[RDD[Edge[String]]] = new ArrayBuffer[RDD[Edge[String]]]()
     //loop context
-    contexts.foreach { case ctx => 
+    contexts.foreach { case ctx =>
+      //load actions
+      val actions_path = Contexts.CONTEXTS_BASE_PATH + ctx + "/actions/"
+      val vertices = Datastore.objectFile[(VertexId, Array[String])](sc, actions_path + "vertices")
+      val edges = Datastore.objectFile[Edge[String]](sc, actions_path + "edges")
+      knowledge_vertices += vertices
+      knowledge_edges += edges
       //loop languages
       languages.foreach { case lang_id =>
         //load cases
@@ -153,6 +164,12 @@ object CaseFactory {
         val edges = Datastore.objectFile[Edge[String]](sc, cases_path + "edges")
         knowledge_vertices += vertices
         knowledge_edges += edges
+        //load speeches
+        val speech_path = Contexts.CONTEXTS_BASE_PATH + ctx + "/actions/" + lang_id + "/"
+        val speech_vertices = Datastore.objectFile[(VertexId, Array[String])](sc, speech_path + "vertices")
+        val speech_edges = Datastore.objectFile[Edge[String]](sc, speech_path + "edges")
+        knowledge_vertices += speech_vertices
+        knowledge_edges += speech_edges
       }
     }
     var vertices:ArrayBuffer[(VertexId, Array[String])] = new ArrayBuffer[(VertexId, Array[String])]()
@@ -172,6 +189,11 @@ object CaseFactory {
     //add Root LV4 vertex
     val root_vertex = (Stages.LV4, Array(Stages.LV4_VALUE))
     vertices += root_vertex
+    //add Misunderstanding Basic Action vertex and edge
+    val misundertanding_vertex = (Actions.basic_ids.get(Actions.MISUNDERSTANDING_ACTION).get, Array(Actions.MISUNDERSTANDING_ACTION))
+    val misunderstanding_edge = Edge(Stages.LV4, Actions.basic_ids.get(Actions.MISUNDERSTANDING_ACTION).get, Actions.MISUNDERSTANDING_ACTION)
+    vertices += misundertanding_vertex
+    edges += misunderstanding_edge
     //build graph
     Graph.apply(sc.parallelize(vertices), sc.parallelize(edges))
   }

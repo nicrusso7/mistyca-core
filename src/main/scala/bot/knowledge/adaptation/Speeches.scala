@@ -17,7 +17,7 @@ object Speeches {
 			//complete message w/ API message
 		  var param_speech = available_speeches(0);
 		  val copy_pattern = available_speeches(0);
-		  var analysis = ArrayBuffer[String]();
+		  var analysis = new ArrayBuffer[String]();
 		  var params = api_response_message;
 		  for(v <- params.split(",")) {
 		    if(param_speech.contains(Actions.REPLACE_MARKER)) {

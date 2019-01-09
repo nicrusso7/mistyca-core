@@ -27,6 +27,9 @@ object Mistyca {
     val reasoner = new Reasoner()
     //run analysis
     val analysis_graph = reasoner.evaluateCases(knowledge, sentence, sim_measures_model)
+    //TODO store analysis
+    //DEBUG LINE! analysis_graph.vertices.collect().foreach(f=> println(f._1 + "," + f._2.mkString("|")))
+    
     //extract response
     analysis_graph.vertices.filter(v => v._2(0).equals(Stages.ANALYSIS_END_MARKER)).collect()(0)._2(1)
   }

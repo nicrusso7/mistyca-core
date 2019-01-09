@@ -3,7 +3,7 @@
 
 		"name":"MATH",
 
-		"with_Auth":false,
+		"with_Auth":false
 	},
 
 	"intents": [{
@@ -32,7 +32,7 @@
 		
 		"context":"MATH",
 
-		"action":"solve",
+		"action":"basic-calc",
 
 		"language":"en-GB",
 
@@ -48,7 +48,7 @@
 
 				"plus":"+",
 
-				"divided_by":"/"
+				"divided by":"/"
 			}
 		}
 	},
@@ -78,7 +78,7 @@
 		
 		"context":"MATH",
 
-		"action":"solve",
+		"action":"basic-calc",
 
 		"language":"it-IT",
 
@@ -103,7 +103,7 @@
 
 		"context":"MATH",
 
-		"name":"solve",
+		"name":"basic-calc",
 
 		"connector":"AWSLambdaConnector",
 		
@@ -124,7 +124,7 @@
 	
 		"context":"MATH",
 
-		"name":"solve",
+		"name":"basic-calc",
 
 		"connector":"AWSLambdaConnector",
 		

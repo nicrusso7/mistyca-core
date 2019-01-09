@@ -5,6 +5,7 @@ import scala.io.Source
 
 import bot.knowledge.adaptation.Actions
 import bot.knowledge.cases.CaseFactory
+import bot.reasoning.IntentRetrieval
 
 class TrainingTest extends FunSuite {
   test("Train Actions Test") {
@@ -16,4 +17,12 @@ class TrainingTest extends FunSuite {
     val json_training = Source.fromURL(getClass.getResource("/Math_SKILL.json")).mkString
     println(CaseFactory.train(null, json_training, false)._1)
   }
+  
+  test("Confict Test") {
+    println(IntentRetrieval.resolveConflicts(Array(("NUMBER","3_conflict_4","3_conflict_4"),("NUMBER","3_conflict_4","3_conflict_4"),("OPERATOR","plus","+"))).mkString("|"))
+  }
+  
+//  test("SyncAction Test") {
+//    val message = ("",Array(null,null,null,null,))
+//  }
 }

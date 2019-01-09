@@ -8,7 +8,7 @@ class KeywordClass(query_array:Array[String], case_keyword_class:Array[String], 
   val CUSTOM_KEYWORD_MARKER = "{custom}"
   val CONTEXT_BASED_KEYWORD_MARKER = "{context_based}"
   
-  val CUSTOM_KEYWORD_DIVISOR = "{:}"
+  val CUSTOM_KEYWORD_DIVISOR = "@"
   
   /*
 	 * Primitives Keywords Classes

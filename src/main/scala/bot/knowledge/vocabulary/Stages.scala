@@ -24,10 +24,11 @@ object Stages {
   
   
   val EVALUATED_MARKER = "{eval}"
-  val CONFLICT_MARKER = "{conflict}"
+  val CONFLICT_MARKER = "_conflict_"
+  val ARGS_MARKER = "_@_"
   val MISSING_MARKER = "{miss}"
   val AMBIGUOUS_MARKER = "{ambiguous}"
   val MISUNDERSTANDING_MARKER = "{misunderstanding}"
   val ANALYSIS_END_MARKER = "{end}"
-  val ACCEPTANCE_THRESHOLD = 0.65
+  val ACCEPTANCE_THRESHOLD = 0.49
 }

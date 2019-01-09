@@ -9,7 +9,7 @@ import bot.knowledge.similarity.comparators.SemanticComparator
 import scala.collection.mutable.ArrayBuffer
 import bot.knowledge.similarity.comparators.SyntaxComparator
 
-class Reasoner() {
+class Reasoner() extends java.io.Serializable {
    //user_id:String, cache:org.apache.spark.broadcast.Broadcast[scala.collection.mutable.Map[String, (scala.collection.mutable.Map[String,Array[(String,String)]], scala.collection.mutable.Map[String,Array[(String,String)]])]]) 
   /*
    * First step function to retrieve the more similar case. It ranks all the Cases in the selected Contexts (in parallel) applying the 
@@ -87,22 +87,19 @@ class Reasoner() {
         //isolate analysis array 
         val analysis_array = triplet.srcAttr.drop(2)
         //filter by Context.Action_Name
-        var filtered_analysis = ArrayBuffer[(String, String, (String,String), (String,String), Set[(String,String,String)])]()
+        var filtered_analysis = new ArrayBuffer[(String, String, (String,String), (String,String), Set[(String,String,String)])]()
         //TODO omg, we can do better...
         for(i<-1 to analysis_array.length/9){
-          if((analysis_array((9*(i-1))+1) + ":" + analysis_array(9*(i-1))).equals(triplet.attr)) {
             filtered_analysis += ((analysis_array(9*(i-1)), analysis_array((9*(i-1))+1), (analysis_array((9*(i-1))+2), analysis_array((9*(i-1))+3)), (analysis_array((9*(i-1))+4), analysis_array((9*(i-1))+5)), 
                 Set((analysis_array((9*(i-1))+6),analysis_array((9*(i-1))+7),analysis_array((9*(i-1))+8)))))
-          }
         }
-        //route msgs to Stage 4 by Context.Action_Name
-        Iterator((triplet.dstId,(triplet.srcAttr(1),filtered_analysis.toArray))) 
+        //route msgs to Stage 3 by Context.Action_Name
+        Iterator((triplet.dstId,(triplet.srcAttr(1),filtered_analysis.toArray.filter(p=> (p._2 + ":" + p._1).equals(triplet.attr))))) 
       }
       else if(triplet.srcId >= Stages.LV3_LOWER && triplet.srcId <= Stages.LV3_UPPER) {
-        //stage 5: forward Cases analysis to contexts evaluator vertex
-        if(!triplet.srcAttr(1).equals(Stages.MISSING_MARKER)) {
-          val args_array = triplet.srcAttr.drop(7)
-          Iterator((triplet.dstId,(triplet.srcAttr(1), Array((triplet.srcAttr(2), triplet.srcAttr(3),(triplet.srcAttr(4),triplet.srcAttr(5)),(triplet.srcAttr(4),triplet.srcAttr(6)),Set((args_array.mkString(Actions.ARGS_MARKER),null,null)))))))
+        //forward Cases analysis to contexts evaluator vertex
+        if(!triplet.srcAttr(2).equals(Stages.MISSING_MARKER)) {
+          Iterator((triplet.dstId,(triplet.srcAttr(1), Array((triplet.srcAttr(2), triplet.srcAttr(3),(triplet.srcAttr(4),triplet.srcAttr(5)),(triplet.srcAttr(4),triplet.srcAttr(6)),Set((triplet.srcAttr.drop(7).mkString(Actions.ARGS_MARKER),null,null)))))))
         }
         else {
           //missing Context msg
@@ -113,8 +110,7 @@ class Reasoner() {
         if(!triplet.srcAttr(1).equals(Stages.MISUNDERSTANDING_MARKER)) {
           //route to Adaptation Stages by Context.Action_Name
           if(triplet.attr.equals(triplet.srcAttr(2))) {
-            val args_array = triplet.srcAttr.drop(7)
-            Iterator((triplet.dstId,(triplet.srcAttr(1),Array((triplet.srcAttr(2),triplet.srcAttr(3),(triplet.srcAttr(4),""),(triplet.srcAttr(5),triplet.srcAttr(6)),Set((args_array(0),null,null)))))))
+            Iterator((triplet.dstId,(triplet.srcAttr(1),Array((triplet.srcAttr(2),triplet.srcAttr(3),(triplet.srcAttr(4),""),(triplet.srcAttr(5),triplet.srcAttr(6)),Set((triplet.srcAttr.drop(7)(0),null,null)))))))
           }
           else {
             //deactivate neuron
@@ -124,7 +120,7 @@ class Reasoner() {
         else {
           if(triplet.attr.equals(Actions.MISUNDERSTANDING_ACTION)) {
             //route to Misunderstanding
-            Iterator((triplet.dstId,(triplet.srcAttr(1),null)))
+            Iterator((triplet.dstId,(triplet.srcAttr(1),Array())))
           }
           else {
             //deactivate neuron
@@ -136,7 +132,7 @@ class Reasoner() {
         //if sync action was performed, route by response code and language ID
         if(!triplet.srcAttr(1).equals(Actions.ASYNC_ACTION_MARKER)) {
           if(triplet.attr.equals(triplet.srcAttr(1))) {
-            Iterator((triplet.dstId,(triplet.srcAttr(2),null)))
+            Iterator((triplet.dstId,(triplet.srcAttr(2),Array())))
           }
           else {
             //deactivate neuron
@@ -276,7 +272,7 @@ class Reasoner() {
         //if sync action was performed, route by response code and language ID
         if(!triplet.srcAttr(1).equals(Actions.ASYNC_ACTION_MARKER)) {
           if(triplet.attr.equals(triplet.srcAttr(1))) {
-            Iterator((triplet.dstId,(triplet.srcAttr(2),null)))
+            Iterator((triplet.dstId,(triplet.srcAttr(2),Array())))
           }
           else {
             //deactivate neuron

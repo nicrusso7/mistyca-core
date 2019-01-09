@@ -20,7 +20,10 @@ object IntentAdaptation {
         //mark vertex with Async Action marker
         Array(Stages.EVALUATED_MARKER,Actions.ASYNC_ACTION_MARKER)
       }
-    }
+      case Actions.MISUNDERSTANDING_ACTION => {
+        Array(Stages.ANALYSIS_END_MARKER) ++ Array(Actions.misunderstanding())
+      }
+    } 
   }
   
   def answer(value:Array[String], message:(String, Array[(String, String, (String, String), (String, String), Set[(String, String, String)])])): Array[String] = {

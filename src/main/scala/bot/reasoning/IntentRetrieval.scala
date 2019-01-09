@@ -2,6 +2,8 @@ package bot.reasoning
 
 import bot.knowledge.similarity.comparators._
 import bot.knowledge.vocabulary.Stages
+import bot.knowledge.adaptation.Actions
+import scala.collection.mutable.ArrayBuffer
 import utils.Regex
 import utils.StanfordNLP
 import java.awt.SentEvent
@@ -58,7 +60,7 @@ object IntentRetrieval {
     //group msgs by Context.Action and Language_ID
     val zipped_analysis = message._2.groupBy(f=>(f._1,f._2,f._3,f._4)).map(f=>f._1->f._2.map(h=>(h._5)))
     //resolve conflicts between Keywords Classes (eventually) and weighs the coefficients
-    val cleaned_analysis = zipped_analysis.map(act=>(act._1._1,act._1._2, if(!act._1._3._1.equals("N.A.")) (act._1._3._1.toDouble*0.5+act._1._4._1.toDouble*0.5).toString() else act._1._4._1,act._1._3._2,act._1._4._2)->resolveConflicts(act._2.reduce((x,y)=> x++y).toArray))
+    val cleaned_analysis = zipped_analysis.map(act=>(act._1._1,act._1._2, if(!act._1._3._1.equals("N.A.")) (act._1._3._1.toDouble*0.5+act._1._4._1.toDouble*0.5).toString() else act._1._4._1,act._1._3._2,act._1._4._2)->resolveConflicts(act._2.map(p=> p.toArray).reduce((x,y)=> x++y)))
     //retain non-missed non-ambiguous cases
     val retained_analysis = cleaned_analysis.filter(an=>an._2.forall(pair=> !pair._2.equals(Stages.MISSING_MARKER)))
     if(retained_analysis.isEmpty){
@@ -67,7 +69,7 @@ object IntentRetrieval {
     }
     else  {
       //retain the more similar Case for this Context and store analysis (Input_Query, Context.Action, Language, Similarity_Coefficient, Root_Parsed, Pattern_Parsed, Array(Keywords_Class,Keyword,Keyword_Parsed))
-      Array(Stages.EVALUATED_MARKER,message._1) ++ retrieveCase(collection.mutable.Map(retained_analysis.toSeq:_*))          
+      Array(Stages.EVALUATED_MARKER,message._1) ++ retrieveCase(collection.mutable.Map(retained_analysis.toSeq:_*))  
     }
   }
   
@@ -89,7 +91,7 @@ object IntentRetrieval {
         if(max_sim_cases.length > 1) {
           //ambiguous, misunderstanding
           //maybe you have to check the model....
-          Array(Stages.EVALUATED_MARKER,Stages.MISUNDERSTANDING_MARKER)
+          Array(Stages.EVALUATED_MARKER,Stages.MISUNDERSTANDING_MARKER +"{Model exception?}")
         }
         else {
           //store Intent
@@ -106,53 +108,52 @@ object IntentRetrieval {
   def resolveConflicts(args:Array[(String,String,String)]) : Array[(String,String,String)] = {
     if(args.forall(pair=> !pair._2.equals(Stages.MISSING_MARKER))) {
       //KeywordClass,Keyword,Formal_Value
-      var cleaned_args:Array[(String, String, String)] = Array.empty;
+      var cleaned_args = new ArrayBuffer[(String, String, String)]()
       args.foreach{ case arg =>
         if(arg._2.contains(Stages.CONFLICT_MARKER)) {
-          var partial_cleaned_args:Array[(String, String, String)] = Array.empty;
-          val other_args_set = args.diff(Array(arg))
-          if(other_args_set.filter(p=> p._1.equals(arg._1)).length > 0) {
-            //cardinality conflict
-            val involved_args = Array(arg) ++ other_args_set.filter(p=> p._1.equals(arg._1))
-            val arg_cardinality = involved_args.length
-            val canditates_args_array = arg._2.split(Stages.CONFLICT_MARKER)
-            if(canditates_args_array.length == arg_cardinality) {
-              //resolve all conflict
-              canditates_args_array.foreach(value=> cleaned_args :+ ((arg._1,value,value)))
-              //merge with other args
-              cleaned_args = cleaned_args ++ (args.diff(involved_args))
-              //restart process
-              resolveConflicts(cleaned_args)
-            }
-            else {
-              //ambiguity, mark it
-              cleaned_args :+ ((arg._1,Stages.AMBIGUOUS_MARKER))
-            }
-          }
-          else {
-            //composition conflict
-            val other_args_array = other_args_set.map(a=>a._2).toArray
-  		      val canditates_args_array = arg._2.split(Stages.CONFLICT_MARKER)
-  		      val regex = new Regex()
-            for(cand<-canditates_args_array) {
-              if(!regex.contains(cand, other_args_array)) {
-                partial_cleaned_args :+ ((arg._1,cand,arg._3))
+          //new conflict?
+          if(cleaned_args.filter(p=> p._1.equals(arg._1)).length == 0) {
+            var partial_cleaned_args = new ArrayBuffer[(String, String, String)]()
+            val other_args_set = args.diff(Array(arg))
+            if(other_args_set.filter(p=> p._1.equals(arg._1)).length > 0) {
+              //cardinality conflict
+              val involved_args = args.filter(p=> p._1.equals(arg._1))
+              val arg_cardinality = involved_args.length
+              val canditates_args_array = arg._2.split(Stages.CONFLICT_MARKER)
+              if(canditates_args_array.length == arg_cardinality) {
+                //resolve all conflict
+                canditates_args_array.foreach(value=> cleaned_args += ((arg._1,value,value)))
+              }
+              else {
+                //ambiguity, mark it
+                cleaned_args += ((arg._1,Stages.AMBIGUOUS_MARKER,Stages.AMBIGUOUS_MARKER))
               }
             }
-            if(partial_cleaned_args.length == 1) {
-              cleaned_args = cleaned_args ++ partial_cleaned_args
-            }
             else {
-              //ambiguity, mark it
-              cleaned_args :+ ((arg._1,Stages.AMBIGUOUS_MARKER))
+              //composition conflict
+              val other_args_array = other_args_set.map(a=>a._2).toArray
+    		      val canditates_args_array = arg._2.split(Stages.CONFLICT_MARKER)
+    		      val regex = new Regex()
+              for(cand<-canditates_args_array) {
+                if(!regex.contains(cand, other_args_array)) {
+                  partial_cleaned_args += ((arg._1,cand,arg._3))
+                }
+              }
+              if(partial_cleaned_args.length == 1) {
+                cleaned_args = cleaned_args ++ partial_cleaned_args
+              }
+              else {
+                //ambiguity, mark it
+                cleaned_args += ((arg._1,Stages.AMBIGUOUS_MARKER,Stages.AMBIGUOUS_MARKER))
+              }
             }
           }
         }
         else {
-          cleaned_args :+ arg
+          cleaned_args += arg
         }
       }
-      cleaned_args
+      cleaned_args.toArray
     }
     else {
       args
